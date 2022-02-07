@@ -5,6 +5,7 @@ import express from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import { buildSchema } from 'type-graphql';
 import { ApolloServerPluginLandingPageGraphQLPlayground } from 'apollo-server-core';
+import cors from 'cors';
 
 import { __prod__ } from './constants';
 import { ContextType } from './types';
@@ -21,6 +22,13 @@ const main = async () => {
   const RedisStore = require('connect-redis')(session);
   const redisClient = redis.createClient({ legacyMode: true });
   redisClient.connect().catch(console.error);
+
+  app.use(
+    cors({
+      origin: 'http://localhost:3000',
+      credentials: true,
+    }),
+  );
 
   app.use(
     session({
@@ -52,7 +60,7 @@ const main = async () => {
 
   await apolloServer.start();
 
-  apolloServer.applyMiddleware({ app });
+  apolloServer.applyMiddleware({ app, cors: false });
 
   app.listen(process.env.PORT, () => {
     console.log(`Server is runnig on the ${process.env.PORT} port`);
