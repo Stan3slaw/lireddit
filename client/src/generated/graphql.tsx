@@ -30,26 +30,21 @@ export type Mutation = {
   updatePost?: Maybe<PostEntity>;
 };
 
-
 export type MutationCreatePostArgs = {
   title: Scalars['String'];
 };
-
 
 export type MutationDeletePostArgs = {
   id: Scalars['Float'];
 };
 
-
 export type MutationLoginArgs = {
   options: UsernamePasswordInput;
 };
 
-
 export type MutationRegisterArgs = {
   options: UsernamePasswordInput;
 };
-
 
 export type MutationUpdatePostArgs = {
   id: Scalars['Float'];
@@ -71,7 +66,6 @@ export type Query = {
   post?: Maybe<PostEntity>;
   posts: Array<PostEntity>;
 };
-
 
 export type QueryPostArgs = {
   id: Scalars['Float'];
@@ -96,30 +90,93 @@ export type UsernamePasswordInput = {
   username: Scalars['String'];
 };
 
+export type RegularUserFragment = { __typename?: 'UserEntity'; id: number; username: string };
+
+export type LoginMutationVariables = Exact<{
+  options: UsernamePasswordInput;
+}>;
+
+export type LoginMutation = {
+  __typename?: 'Mutation';
+  login: {
+    __typename?: 'UserResponse';
+    errors?: Array<{ __typename?: 'FieldError'; field: string; message: string }> | null;
+    user?: { __typename?: 'UserEntity'; id: number; username: string } | null;
+  };
+};
+
 export type RegisterMutationVariables = Exact<{
   username: Scalars['String'];
   password: Scalars['String'];
 }>;
 
+export type RegisterMutation = {
+  __typename?: 'Mutation';
+  register: {
+    __typename?: 'UserResponse';
+    errors?: Array<{ __typename?: 'FieldError'; field: string; message: string }> | null;
+    user?: { __typename?: 'UserEntity'; id: number; username: string } | null;
+  };
+};
 
-export type RegisterMutation = { __typename?: 'Mutation', register: { __typename?: 'UserResponse', errors?: Array<{ __typename?: 'FieldError', field: string, message: string }> | null, user?: { __typename?: 'UserEntity', id: number, username: string } | null } };
+export type MeQueryVariables = Exact<{ [key: string]: never }>;
 
+export type MeQuery = {
+  __typename?: 'Query';
+  me?: { __typename?: 'UserEntity'; id: number; username: string } | null;
+};
 
-export const RegisterDocument = gql`
-    mutation Register($username: String!, $password: String!) {
-  register(options: {username: $username, password: $password}) {
-    errors {
-      field
-      message
-    }
-    user {
-      id
-      username
+export const RegularUserFragmentDoc = gql`
+  fragment RegularUser on UserEntity {
+    id
+    username
+  }
+`;
+export const LoginDocument = gql`
+  mutation Login($options: UsernamePasswordInput!) {
+    login(options: $options) {
+      errors {
+        field
+        message
+      }
+      user {
+        ...RegularUser
+      }
     }
   }
+  ${RegularUserFragmentDoc}
+`;
+
+export function useLoginMutation() {
+  return Urql.useMutation<LoginMutation, LoginMutationVariables>(LoginDocument);
 }
-    `;
+export const RegisterDocument = gql`
+  mutation Register($username: String!, $password: String!) {
+    register(options: { username: $username, password: $password }) {
+      errors {
+        field
+        message
+      }
+      user {
+        ...RegularUser
+      }
+    }
+  }
+  ${RegularUserFragmentDoc}
+`;
 
 export function useRegisterMutation() {
   return Urql.useMutation<RegisterMutation, RegisterMutationVariables>(RegisterDocument);
-};
+}
+export const MeDocument = gql`
+  query Me {
+    me {
+      ...RegularUser
+    }
+  }
+  ${RegularUserFragmentDoc}
+`;
+
+export function useMeQuery(options?: Omit<Urql.UseQueryArgs<MeQueryVariables>, 'query'>) {
+  return Urql.useQuery<MeQuery>({ query: MeDocument, ...options });
+}
