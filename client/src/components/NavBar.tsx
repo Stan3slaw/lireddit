@@ -1,25 +1,26 @@
 import React from 'react';
 import NextLink from 'next/link';
-import { Box, Button, Flex, Link } from '@chakra-ui/react';
-import { useMeQuery } from '../generated/graphql';
+import { Box, Button, Flex } from '@chakra-ui/react';
+import { useLogoutMutation, useMeQuery } from '../generated/graphql';
 
 interface NavBarProps {}
 
 export const NavBar: React.FC<NavBarProps> = ({}) => {
   let body = null;
   const [{ data, fetching }] = useMeQuery();
+  const [{ fetching: logoutFetching }, logout] = useLogoutMutation();
 
   if (fetching) {
   } else if (!data?.me) {
     body = (
       <>
         <NextLink href='/login'>
-          <Button color='white' variant='outline' mr={4}>
+          <Button colorScheme='telegram' variant='outline' mr={4}>
             Log in
           </Button>
         </NextLink>
         <NextLink href='/register'>
-          <Button color='telegram.500' variant='solid'>
+          <Button colorScheme='telegram' variant='solid'>
             Sign up
           </Button>
         </NextLink>
@@ -27,9 +28,15 @@ export const NavBar: React.FC<NavBarProps> = ({}) => {
     );
   } else {
     body = (
-      <Flex>
-        <Box mr={3}>{data.me.username}</Box>
-        <Button variant='link' color='white'>
+      <Flex alignItems='center'>
+        <Box mr={4}>{data.me.username}</Box>
+        <Button
+          colorScheme='telegram'
+          variant='outline'
+          isLoading={logoutFetching}
+          onClick={() => {
+            logout();
+          }}>
           Logout
         </Button>
       </Flex>
@@ -37,7 +44,7 @@ export const NavBar: React.FC<NavBarProps> = ({}) => {
   }
 
   return (
-    <Flex bgColor='telegram.500' p={4}>
+    <Flex bgColor='white' p={4} borderBottom='1px solid #e2e2e2'>
       <Box ml='auto'>{body}</Box>
     </Flex>
   );

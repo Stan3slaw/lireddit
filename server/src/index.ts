@@ -7,7 +7,7 @@ import { buildSchema } from 'type-graphql';
 import { ApolloServerPluginLandingPageGraphQLPlayground } from 'apollo-server-core';
 import cors from 'cors';
 
-import { __prod__ } from './constants';
+import { COOKIE_NAME, __prod__ } from './constants';
 import { ContextType } from './types';
 
 const main = async () => {
@@ -32,7 +32,7 @@ const main = async () => {
 
   app.use(
     session({
-      name: 'qid',
+      name: COOKIE_NAME,
       secret: process.env.SESSION_SECRET,
       saveUninitialized: false,
       resave: false,
