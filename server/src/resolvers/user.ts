@@ -82,6 +82,7 @@ export class UserResolver {
         })
         .returning('*');
       user = result[0];
+      console.log(result);
     } catch (err) {
       //duplicate username error
       // || err.details.includes('already exists')
@@ -132,6 +133,7 @@ export class UserResolver {
     req.session.userId = user.id;
     return { user };
   }
+
   @Mutation(() => Boolean)
   logout(@Ctx() { req, res }: ContextType) {
     return new Promise((resolve) =>

@@ -8,6 +8,8 @@ import { Wrapper } from '../components/Wrapper';
 import { useRegisterMutation } from '../generated/graphql';
 import { toErrorMap } from '../utils/toErrorMap';
 import NextLink from 'next/link';
+import { withUrqlClient } from 'next-urql';
+import { createUrqlClient } from '../utils/createUrqlClient';
 
 interface RegisterProps {}
 
@@ -36,7 +38,7 @@ const Register: NextPage<RegisterProps> = ({}) => {
             <Box display='flex' flexDirection='column' alignItems='center'>
               <Box>
                 <Button mt={4} type='submit' isLoading={isSubmitting} colorScheme='telegram'>
-                  Register
+                  Sign up
                 </Button>
               </Box>
               <NextLink href='/login'>
@@ -52,4 +54,4 @@ const Register: NextPage<RegisterProps> = ({}) => {
   );
 };
 
-export default Register;
+export default withUrqlClient(createUrqlClient)(Register);
