@@ -3,7 +3,7 @@ import { NextPage } from 'next';
 import NextLink from 'next/link';
 import router from 'next/router';
 import React from 'react';
-import { Box, Button, Link } from '@chakra-ui/react';
+import { Box, Button, Flex, Link } from '@chakra-ui/react';
 
 import { InputField } from '../../components/InputField';
 import { Wrapper } from '../../components/Wrapper';
@@ -41,21 +41,21 @@ const ChangePassword: NextPage<{ token: string }> = ({ token }) => {
               type='password'
             />
             {tokenError ? (
-              <Box color='red' mt={2}>
-                {tokenError}
-              </Box>
+              <Flex>
+                <Box color='red' mt={2} mr={2}>
+                  {tokenError}
+                </Box>
+                <NextLink href='/forgot-password'>
+                  <Link color='telegram.500' mt={2}>
+                    resend email
+                  </Link>
+                </NextLink>
+              </Flex>
             ) : null}
-            <Box display='flex' flexDirection='column' alignItems='center'>
-              <Box>
-                <Button mt={4} type='submit' isLoading={isSubmitting} colorScheme='telegram'>
-                  Change password
-                </Button>
-              </Box>
-              <NextLink href='/'>
-                <Link color='telegram.500' mt={3}>
-                  Resend email
-                </Link>
-              </NextLink>
+            <Box d='flex' justifyContent='center'>
+              <Button mt={4} type='submit' isLoading={isSubmitting} colorScheme='telegram'>
+                Change password
+              </Button>
             </Box>
           </Form>
         )}

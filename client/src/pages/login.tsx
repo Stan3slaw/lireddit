@@ -48,6 +48,12 @@ const Login: NextPage<LoginProps> = ({}) => {
                   Have no account yet? Sign up
                 </Link>
               </NextLink>
+
+              <NextLink href='/forgot-password'>
+                <Link color='telegram.500' mt={3}>
+                  Forgot password?
+                </Link>
+              </NextLink>
             </Box>
           </Form>
         )}
