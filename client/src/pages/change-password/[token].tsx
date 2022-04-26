@@ -8,7 +8,6 @@ import { Box, Button, Flex, Link } from '@chakra-ui/react';
 import { InputField } from '../../components/InputField';
 import { Wrapper } from '../../components/Wrapper';
 import { toErrorMap } from '../../utils/toErrorMap';
-import login from '../login';
 import { useChangePasswordMutation } from '../../generated/graphql';
 import { withUrqlClient } from 'next-urql';
 import { createUrqlClient } from '../../utils/createUrqlClient';
