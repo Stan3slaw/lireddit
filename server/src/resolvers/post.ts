@@ -1,11 +1,63 @@
 import { PostEntity } from '../entities/Post';
-import { Arg, Mutation, Query, Resolver } from 'type-graphql';
+import {
+  Arg,
+  Ctx,
+  Field,
+  InputType,
+  Mutation,
+  Query,
+  Resolver,
+  UseMiddleware,
+  Int,
+  FieldResolver,
+  Root,
+  ObjectType,
+} from 'type-graphql';
+import { ContextType } from 'src/types';
+import { isAuth } from '../middlewares/isAuth';
 
-@Resolver()
+@InputType()
+class PostInput {
+  @Field()
+  title: string;
+  @Field()
+  text: string;
+}
+
+@ObjectType()
+class PaginatedPosts {
+  @Field(() => [PostEntity])
+  posts: PostEntity[];
+
+  @Field()
+  hasMore: boolean;
+}
+
+@Resolver(PostEntity)
 export class PostResolver {
-  @Query(() => [PostEntity])
-  posts(): Promise<PostEntity[]> {
-    return PostEntity.find();
+  @FieldResolver(() => String)
+  textSnippet(@Root() root: PostEntity) {
+    return root.text.slice(0, 50);
+  }
+
+  @Query(() => PaginatedPosts)
+  async posts(
+    @Arg('limit', () => Int) limit: number,
+    @Arg('cursor', () => String, { nullable: true }) cursor: string | null,
+  ): Promise<PaginatedPosts> {
+    console.log(limit, cursor);
+    const realLimit = Math.min(50, limit);
+    const realLimitPlusOne = realLimit + 1;
+    const qb = PostEntity.createQueryBuilder('p')
+      .orderBy('"createdAt"', 'DESC')
+      .take(realLimitPlusOne);
+    if (cursor) {
+      qb.where('"createdAt" < :cursor', { cursor: new Date(+cursor) });
+    }
+
+    const posts = await qb.getMany();
+
+    return { posts: posts.slice(0, realLimit), hasMore: posts.length === realLimitPlusOne };
   }
 
   @Query(() => PostEntity, { nullable: true })
@@ -14,8 +66,15 @@ export class PostResolver {
   }
 
   @Mutation(() => PostEntity)
-  async createPost(@Arg('title') title: string): Promise<PostEntity> {
-    return PostEntity.create({ title }).save();
+  @UseMiddleware(isAuth)
+  async createPost(
+    @Arg('input') input: PostInput,
+    @Ctx() { req }: ContextType,
+  ): Promise<PostEntity> {
+    return PostEntity.create({
+      ...input,
+      creatorId: req.session.userId,
+    }).save();
   }
 
   @Mutation(() => PostEntity, { nullable: true })

@@ -10,6 +10,7 @@ import Redis from 'ioredis';
 import connectRedis from 'connect-redis';
 import session from 'express-session';
 import { createConnection } from 'typeorm';
+import path from 'path';
 
 import { COOKIE_NAME, __prod__ } from './constants';
 import { ContextType } from './types';
@@ -27,7 +28,10 @@ const main = async () => {
     logging: true,
     synchronize: true,
     entities: [PostEntity, UserEntity],
+    migrations: [path.join(__dirname, './migrations/*')],
   });
+
+  // conn.runMigrations();
 
   const app = express();
 

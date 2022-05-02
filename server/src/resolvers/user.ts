@@ -36,7 +36,6 @@ export class UserResolver {
     }
 
     const token = v4();
-    console.log(token);
     await redis.set(FORGET_PASSWORD_PREFIX + token, user.id, 'ex', 1000 * 60 * 60 * 24 * 3);
 
     sendEmail(
@@ -182,6 +181,7 @@ export class UserResolver {
       };
     }
     req.session.userId = user.id;
+
     return { user };
   }
 
