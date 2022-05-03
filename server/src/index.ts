@@ -16,6 +16,7 @@ import { COOKIE_NAME, __prod__ } from './constants';
 import { ContextType } from './types';
 import { PostEntity } from './entities/Post';
 import { UserEntity } from './entities/User';
+import { UpdootEntity } from './entities/Updoot';
 
 const main = async () => {
   await createConnection({
@@ -27,7 +28,7 @@ const main = async () => {
     password: '9642',
     logging: true,
     synchronize: true,
-    entities: [PostEntity, UserEntity],
+    entities: [PostEntity, UserEntity, UpdootEntity],
     migrations: [path.join(__dirname, './migrations/*')],
   });
 

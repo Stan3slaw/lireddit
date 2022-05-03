@@ -15,6 +15,9 @@ import {
 } from 'type-graphql';
 import { ContextType } from 'src/types';
 import { isAuth } from '../middlewares/isAuth';
+import { getConnection } from 'typeorm';
+import { UpdootEntity } from '../entities/Updoot';
+// import { getConnection } from 'typeorm';
 
 @InputType()
 class PostInput {
@@ -40,22 +43,106 @@ export class PostResolver {
     return root.text.slice(0, 50);
   }
 
+  @Mutation(() => Boolean)
+  @UseMiddleware(isAuth)
+  async vote(
+    @Arg('postId', () => Int) postId: number,
+    @Arg('value', () => Int) value: number,
+    @Ctx() { req }: ContextType,
+  ) {
+    const isUpdoot = value !== -1;
+    const realValue = isUpdoot ? 1 : -1;
+    const { userId } = req.session;
+    const updoot = await UpdootEntity.findOne({ where: { postId, userId } });
+
+    // the user has voted on the post before
+    // and they are changing their vote
+    if (updoot && updoot.value !== realValue) {
+      await getConnection().transaction(async (tm) => {
+        await tm.query(
+          `
+          update updoot
+          set value = $1
+          where "postId" = $2 and "userId" = $3
+        `,
+          [realValue, postId, userId],
+        );
+
+        await tm.query(
+          `
+          update post
+          set points = points + $1
+          where id = $2
+        `,
+          [2 * realValue, postId],
+        );
+      });
+    } else if (!updoot) {
+      // has never voted before
+      await getConnection().transaction(async (tm) => {
+        await tm.query(
+          `
+          insert into updoot ("userId", "postId", value)
+          values ($1, $2, $3)
+        `,
+          [userId, postId, realValue],
+        );
+
+        await tm.query(
+          `
+          update post
+          set points = points + $1
+          where id = $2
+      `,
+          [realValue, postId],
+        );
+      });
+    }
+
+    return true;
+  }
+
   @Query(() => PaginatedPosts)
   async posts(
     @Arg('limit', () => Int) limit: number,
     @Arg('cursor', () => String, { nullable: true }) cursor: string | null,
   ): Promise<PaginatedPosts> {
-    console.log(limit, cursor);
     const realLimit = Math.min(50, limit);
     const realLimitPlusOne = realLimit + 1;
-    const qb = PostEntity.createQueryBuilder('p')
-      .orderBy('"createdAt"', 'DESC')
-      .take(realLimitPlusOne);
+
+    const replacements: any[] = [realLimitPlusOne];
+
     if (cursor) {
-      qb.where('"createdAt" < :cursor', { cursor: new Date(+cursor) });
+      replacements.push(new Date(parseInt(cursor)));
     }
 
-    const posts = await qb.getMany();
+    const posts = await getConnection().query(
+      `
+    select p.*,
+    json_build_object(
+      'id', u.id,
+      'username', u.username,
+      'email', u.email,
+      'createdAt', u."createdAt",
+      'updatedAt', u."updatedAt"
+    ) creator
+    from posts p
+    inner join public.users u on u.id = p."creatorId"
+    ${cursor ? `where p."createdAt" < $2` : ''}
+    order by p."createdAt" DESC
+    limit $1
+    `,
+      replacements,
+    );
+    // const qb = PostEntity.createQueryBuilder('p')
+    //   .innerJoinAndSelect('p.creator', 'u', 'u.id = p."creatorId"')
+    //   .orderBy('p."createdAt"', 'DESC')
+    //   .take(realLimitPlusOne);
+    // if (cursor) {
+    //   qb.where('p."createdAt" < :cursor', { cursor: new Date(+cursor) });
+    // }
+
+    // const posts = await qb.getMany();
 
     return { posts: posts.slice(0, realLimit), hasMore: posts.length === realLimitPlusOne };
   }

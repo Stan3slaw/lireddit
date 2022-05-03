@@ -1,6 +1,16 @@
 import { UserEntity } from '../entities/User';
 import { ContextType } from '../types';
-import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from 'type-graphql';
+import {
+  Arg,
+  Ctx,
+  Field,
+  FieldResolver,
+  Mutation,
+  ObjectType,
+  Query,
+  Resolver,
+  Root,
+} from 'type-graphql';
 import argon2 from 'argon2';
 import { v4 } from 'uuid';
 
@@ -26,8 +36,16 @@ class UserResponse {
   user?: UserEntity;
 }
 
-@Resolver()
+@Resolver(UserEntity)
 export class UserResolver {
+  @FieldResolver()
+  email(@Root() user: UserEntity, @Ctx() { req }: ContextType) {
+    if (req.session.userId === user.id) {
+      return user.email;
+    }
+    return '';
+  }
+
   @Mutation(() => Boolean)
   async forgotPassword(@Arg('email') email: string, @Ctx() { redis }: ContextType) {
     const user = await UserEntity.findOneBy({ email });
@@ -129,7 +147,6 @@ export class UserResolver {
         .returning('*')
         .execute();
       user = result.raw[0];
-      console.log(result);
     } catch (err) {
       //duplicate username error
       // || err.details.includes('already exists')
