@@ -61,7 +61,7 @@ export class PostResolver {
       await getConnection().transaction(async (tm) => {
         await tm.query(
           `
-          update updoot
+          update updoots
           set value = $1
           where "postId" = $2 and "userId" = $3
         `,
@@ -70,7 +70,7 @@ export class PostResolver {
 
         await tm.query(
           `
-          update post
+          update posts
           set points = points + $1
           where id = $2
         `,
@@ -82,7 +82,7 @@ export class PostResolver {
       await getConnection().transaction(async (tm) => {
         await tm.query(
           `
-          insert into updoot ("userId", "postId", value)
+          insert into updoots ("userId", "postId", value)
           values ($1, $2, $3)
         `,
           [userId, postId, realValue],
@@ -90,7 +90,7 @@ export class PostResolver {
 
         await tm.query(
           `
-          update post
+          update posts
           set points = points + $1
           where id = $2
       `,
@@ -106,14 +106,22 @@ export class PostResolver {
   async posts(
     @Arg('limit', () => Int) limit: number,
     @Arg('cursor', () => String, { nullable: true }) cursor: string | null,
+    @Ctx() { req }: ContextType,
   ): Promise<PaginatedPosts> {
     const realLimit = Math.min(50, limit);
     const realLimitPlusOne = realLimit + 1;
+    const { userId } = req.session;
 
     const replacements: any[] = [realLimitPlusOne];
 
+    if (userId) {
+      replacements.push(userId);
+    }
+
+    let cursorIndex = 3;
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)));
+      cursorIndex = replacements.length;
     }
 
     const posts = await getConnection().query(
@@ -125,10 +133,15 @@ export class PostResolver {
       'email', u.email,
       'createdAt', u."createdAt",
       'updatedAt', u."updatedAt"
-    ) creator
+    ) creator,
+    ${
+      userId
+        ? '(select value from updoots where "userId" = $2 and "postId" = p.id) "voteStatus"'
+        : 'null as "voteStatus"'
+    }
     from posts p
     inner join public.users u on u.id = p."creatorId"
-    ${cursor ? `where p."createdAt" < $2` : ''}
+    ${cursor ? `where p."createdAt" < $${cursorIndex}` : ''}
     order by p."createdAt" DESC
     limit $1
     `,

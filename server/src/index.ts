@@ -32,6 +32,8 @@ const main = async () => {
     migrations: [path.join(__dirname, './migrations/*')],
   });
 
+  // await PostEntity.delete({});
+
   // conn.runMigrations();
 
   const app = express();

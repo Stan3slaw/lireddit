@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class MockPosts1597424501158 implements MigrationInterface {
+export class MockPosts1597424501159 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
         insert into posts (title, text, "creatorId", "createdAt") values ('Sinbad: The Fifth Voyage', 'Aenean lectus. Pellentesque eget nunc. Donec quis orci eget orci vehicula condimentum.', 1, '2019-12-06T09:20:02Z');
