@@ -26,7 +26,7 @@ export class UserEntity extends BaseEntity {
   @Column({ unique: true })
   email!: string;
 
-  @OneToMany(() => PostEntity, (post) => post.creator)
+  @OneToMany(() => PostEntity, (post) => post.creator, { onDelete: 'CASCADE' })
   posts: PostEntity[];
 
   @OneToMany(() => UpdootEntity, (updoot) => updoot.userId)

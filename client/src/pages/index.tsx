@@ -1,18 +1,23 @@
-import { Box, Button, Flex, Heading, Link, Spinner, Stack, Text } from '@chakra-ui/react';
+import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
+import { Box, Button, Flex, Heading, IconButton, Link, Stack, Text } from '@chakra-ui/react';
 import { NextPage } from 'next';
 import { withUrqlClient } from 'next-urql';
 import NextLink from 'next/link';
+import { useRouter } from 'next/router';
 import { useState } from 'react';
 import { Layout } from '../components/Layout';
 import { UpdootSection } from '../components/UpdootSection';
-import { usePostsQuery } from '../generated/graphql';
+import { useDeletePostMutation, useMeQuery, usePostsQuery } from '../generated/graphql';
 import { createUrqlClient } from '../utils/createUrqlClient';
 
 const Home: NextPage = () => {
+  const router = useRouter();
   const [variables, setVariables] = useState({ limit: 15, cursor: null as null | string });
   const [{ data, fetching }] = usePostsQuery({
     variables,
   });
+  const [, deletePost] = useDeletePostMutation();
+  const [{ data: meData }] = useMeQuery();
 
   if (!data && !fetching) {
     return (
@@ -24,26 +29,43 @@ const Home: NextPage = () => {
 
   return (
     <Layout>
-      <Box display='flex' justifyContent='space-between' alignItems='center'>
-        <Heading>LiReddit</Heading>
-        <NextLink href='create-post'>
-          <Link>Create post</Link>
-        </NextLink>
-      </Box>
+      <Box display='flex' justifyContent='space-between' alignItems='center'></Box>
       <br />
       <Stack spacing={8} mb={8}>
         {data?.posts.posts.map((p) =>
-          !data && fetching ? (
-            <Box justifyContent='center'>
-              <Spinner size='xl' />
-            </Box>
-          ) : (
+          !p ? null : (
             <Flex key={p.id} p={5} shadow='md' borderWidth='1px'>
               <UpdootSection post={p} />
-              <Box>
-                <Heading fontSize='xl'>{p.title}</Heading>
+              <Box flex={1}>
+                <NextLink href='post/[id]' as={`/post/${p.id}`}>
+                  <Link>
+                    <Heading fontSize='xl'>{p.title}</Heading>
+                  </Link>
+                </NextLink>
+
                 <Text>posted by {p.creator.username}</Text>
-                <Text mt={4}>{p.textSnippet}</Text>
+                <Flex>
+                  <Text flex={1} mt={4}>
+                    {p.textSnippet}
+                  </Text>
+                  {meData?.me?.id === p.creator.id ? (
+                    <Box>
+                      <IconButton
+                        mr={4}
+                        onClick={() => router.push(`/post/edit/${p.id}`)}
+                        aria-label='edit post'
+                        size='sm'
+                        icon={<EditIcon />}
+                      />
+                      <IconButton
+                        onClick={() => deletePost({ id: p.id })}
+                        aria-label='delete post'
+                        size='sm'
+                        icon={<DeleteIcon />}
+                      />
+                    </Box>
+                  ) : null}
+                </Flex>
               </Box>
             </Flex>
           ),

@@ -17,7 +17,6 @@ import { ContextType } from 'src/types';
 import { isAuth } from '../middlewares/isAuth';
 import { getConnection } from 'typeorm';
 import { UpdootEntity } from '../entities/Updoot';
-// import { getConnection } from 'typeorm';
 
 @InputType()
 class PostInput {
@@ -161,8 +160,11 @@ export class PostResolver {
   }
 
   @Query(() => PostEntity, { nullable: true })
-  async post(@Arg('id') id: number): Promise<any> {
-    return PostEntity.findOneBy({ id });
+  async post(@Arg('id', () => Int) id: number): Promise<PostEntity | null> {
+    return PostEntity.findOne({
+      where: { id },
+      relations: ['creator'],
+    });
   }
 
   @Mutation(() => PostEntity)
@@ -178,24 +180,33 @@ export class PostResolver {
   }
 
   @Mutation(() => PostEntity, { nullable: true })
+  @UseMiddleware(isAuth)
   async updatePost(
-    @Arg('id') id: number,
-    @Arg('title', () => String, { nullable: true }) title: string,
+    @Arg('id', () => Int) id: number,
+    @Arg('title') title: string,
+    @Arg('text') text: string,
+    @Ctx() { req }: ContextType,
   ): Promise<PostEntity | null> {
-    const post = await PostEntity.findOneBy({ id });
-    if (!post) {
-      return null;
-    }
-    if (typeof title !== 'undefined') {
-      post.title = title;
-      await PostEntity.update({ id }, { title });
-    }
-    return post;
+    const updatedPost = await PostEntity.createQueryBuilder()
+      .update(PostEntity)
+      .set({
+        title,
+        text,
+      })
+      .where('id = :id', { id })
+      .andWhere('"creatorId" = :creatorId', { creatorId: req.session.userId })
+      .returning('*')
+      .execute();
+    return updatedPost.raw[0];
   }
 
   @Mutation(() => Boolean)
-  async deletePost(@Arg('id') id: number): Promise<boolean> {
-    await PostEntity.delete({ id });
+  @UseMiddleware(isAuth)
+  async deletePost(
+    @Arg('id', () => Int) id: number,
+    @Ctx() { req }: ContextType,
+  ): Promise<boolean> {
+    await PostEntity.delete({ id, creatorId: req.session.userId });
     return true;
   }
 }
