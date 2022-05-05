@@ -17,6 +17,8 @@ import { ContextType } from './types';
 import { PostEntity } from './entities/Post';
 import { UserEntity } from './entities/User';
 import { UpdootEntity } from './entities/Updoot';
+import { createUserLoader } from './utils/createUserLoader';
+import { createUpdootLoader } from './utils/createUpdootLoader';
 
 const main = async () => {
   await createConnection({
@@ -75,7 +77,13 @@ const main = async () => {
       resolvers: [__dirname + '/resolvers/*{.ts,.js}'],
       validate: false,
     }),
-    context: ({ req, res }): ContextType => ({ req, res, redis }),
+    context: ({ req, res }): ContextType => ({
+      req,
+      res,
+      redis,
+      userLoader: createUserLoader(),
+      updootLoader: createUpdootLoader(),
+    }),
   });
 
   await apolloServer.start();

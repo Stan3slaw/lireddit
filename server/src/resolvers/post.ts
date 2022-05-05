@@ -17,6 +17,7 @@ import { ContextType } from 'src/types';
 import { isAuth } from '../middlewares/isAuth';
 import { getConnection } from 'typeorm';
 import { UpdootEntity } from '../entities/Updoot';
+import { UserEntity } from '../entities/User';
 
 @InputType()
 class PostInput {
@@ -40,6 +41,25 @@ export class PostResolver {
   @FieldResolver(() => String)
   textSnippet(@Root() root: PostEntity) {
     return root.text.slice(0, 50);
+  }
+
+  @FieldResolver(() => UserEntity)
+  creator(@Root() post: PostEntity, @Ctx() { userLoader }: ContextType) {
+    return userLoader.load(post.creatorId);
+  }
+
+  @FieldResolver(() => Int, { nullable: true })
+  async voteStatus(@Root() post: PostEntity, @Ctx() { updootLoader, req }: ContextType) {
+    if (!req.session.userId) {
+      return null;
+    }
+
+    const updoot = (await updootLoader.load({
+      postId: post.id,
+      userId: req.session.userId,
+    })) as any;
+
+    return updoot ? updoot.value : null;
   }
 
   @Mutation(() => Boolean)
@@ -105,57 +125,26 @@ export class PostResolver {
   async posts(
     @Arg('limit', () => Int) limit: number,
     @Arg('cursor', () => String, { nullable: true }) cursor: string | null,
-    @Ctx() { req }: ContextType,
   ): Promise<PaginatedPosts> {
     const realLimit = Math.min(50, limit);
     const realLimitPlusOne = realLimit + 1;
-    const { userId } = req.session;
 
     const replacements: any[] = [realLimitPlusOne];
 
-    if (userId) {
-      replacements.push(userId);
-    }
-
-    let cursorIndex = 3;
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)));
-      cursorIndex = replacements.length;
     }
 
     const posts = await getConnection().query(
       `
-    select p.*,
-    json_build_object(
-      'id', u.id,
-      'username', u.username,
-      'email', u.email,
-      'createdAt', u."createdAt",
-      'updatedAt', u."updatedAt"
-    ) creator,
-    ${
-      userId
-        ? '(select value from updoots where "userId" = $2 and "postId" = p.id) "voteStatus"'
-        : 'null as "voteStatus"'
-    }
+    select p.*
     from posts p
-    inner join public.users u on u.id = p."creatorId"
-    ${cursor ? `where p."createdAt" < $${cursorIndex}` : ''}
+    ${cursor ? `where p."createdAt" < $2` : ''}
     order by p."createdAt" DESC
     limit $1
     `,
       replacements,
     );
-    // const qb = PostEntity.createQueryBuilder('p')
-    //   .innerJoinAndSelect('p.creator', 'u', 'u.id = p."creatorId"')
-    //   .orderBy('p."createdAt"', 'DESC')
-    //   .take(realLimitPlusOne);
-    // if (cursor) {
-    //   qb.where('p."createdAt" < :cursor', { cursor: new Date(+cursor) });
-    // }
-
-    // const posts = await qb.getMany();
-
     return { posts: posts.slice(0, realLimit), hasMore: posts.length === realLimitPlusOne };
   }
 
@@ -163,7 +152,6 @@ export class PostResolver {
   async post(@Arg('id', () => Int) id: number): Promise<PostEntity | null> {
     return PostEntity.findOne({
       where: { id },
-      relations: ['creator'],
     });
   }
 

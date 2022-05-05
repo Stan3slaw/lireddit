@@ -1,28 +1,31 @@
-import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
-import { Box, Button, Flex, Heading, IconButton, Link, Stack, Text } from '@chakra-ui/react';
+import { Box, Button, Flex, Heading, Link, Stack, Text } from '@chakra-ui/react';
 import { NextPage } from 'next';
 import { withUrqlClient } from 'next-urql';
 import NextLink from 'next/link';
-import { useRouter } from 'next/router';
 import { useState } from 'react';
+import { EditDeletePostButtons } from '../components/EditDeletePostButtons';
 import { Layout } from '../components/Layout';
 import { UpdootSection } from '../components/UpdootSection';
-import { useDeletePostMutation, useMeQuery, usePostsQuery } from '../generated/graphql';
+import { useMeQuery, usePostsQuery } from '../generated/graphql';
 import { createUrqlClient } from '../utils/createUrqlClient';
 
 const Home: NextPage = () => {
-  const router = useRouter();
   const [variables, setVariables] = useState({ limit: 15, cursor: null as null | string });
-  const [{ data, fetching }] = usePostsQuery({
+  const [{ data, fetching, error }] = usePostsQuery({
     variables,
   });
-  const [, deletePost] = useDeletePostMutation();
   const [{ data: meData }] = useMeQuery();
 
   if (!data && !fetching) {
     return (
-      <Box display='flex' justifyContent='center' alignItems='center' height='100vh'>
-        You got query failed for some reason
+      <Box
+        display='flex'
+        justifyContent='center'
+        alignItems='center'
+        height='100vh'
+        flexDirection='column'>
+        <Box>You got query failed for some reason</Box>
+        <Box>{error?.message}</Box>
       </Box>
     );
   }
@@ -48,23 +51,7 @@ const Home: NextPage = () => {
                   <Text flex={1} mt={4}>
                     {p.textSnippet}
                   </Text>
-                  {meData?.me?.id === p.creator.id ? (
-                    <Box>
-                      <IconButton
-                        mr={4}
-                        onClick={() => router.push(`/post/edit/${p.id}`)}
-                        aria-label='edit post'
-                        size='sm'
-                        icon={<EditIcon />}
-                      />
-                      <IconButton
-                        onClick={() => deletePost({ id: p.id })}
-                        aria-label='delete post'
-                        size='sm'
-                        icon={<DeleteIcon />}
-                      />
-                    </Box>
-                  ) : null}
+                  {meData?.me?.id === p.creator.id ? <EditDeletePostButtons id={p.id} /> : null}
                 </Flex>
               </Box>
             </Flex>
